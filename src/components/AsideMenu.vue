@@ -206,7 +206,7 @@ function login_keep() {
             <el-menu-item index="3-2" v-if="permission>0">货物记录</el-menu-item>
             <el-menu-item index="3-3">申请记录</el-menu-item>
         </el-sub-menu>
-        <el-menu-item index="4" :disabled="!(username==='admin')">
+        <el-menu-item index="4" :disabled="!(username==='admin')" v-if="false">
             <el-icon>
                 <BrushFilled/>
             </el-icon>
