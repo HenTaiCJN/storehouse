@@ -31,8 +31,6 @@ function init() {
             })
         }
         tableData.value = tmp
-        console.log(tableData.value);
-        console.log(userGoodsLevel);
     }).catch(e => {
         console.error(e);
     })
@@ -361,8 +359,7 @@ function goodsApply() {
             <el-table-column prop="type" label="型号" sortable/>
             <el-table-column prop="imgUrl" label="图片" width="150" sortable>
                 <template #default="scope">
-                    <!--                    <el-button @click="console.log(scope);"/>-->
-                    <img class="imgInTable" :src="scope.row.imgUrl" alt="" @click="openBigImg(scope.row.imgUrl)">
+                    <el-image class="imgInTable" :src="scope.row.imgUrl" alt="" @click="openBigImg(scope.row.imgUrl)" lazy/>
                 </template>
             </el-table-column>
             <el-table-column prop="zone" label="区域" sortable/>
