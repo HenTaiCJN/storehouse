@@ -9,7 +9,7 @@ import ApplyManage  from "@/components/ApplyManage.vue";
 const pages = {
     "Welcome": Welcome, "GoodsManage": GoodsManage,"GoodsRecord":GoodsRecord,"ApplyManage":ApplyManage
 }
-const currPage = shallowRef(Welcome)
+const currPage = shallowRef(GoodsManage)
 
 function openPage(data: string[]) {
     let key = data[1]

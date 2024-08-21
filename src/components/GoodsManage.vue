@@ -6,8 +6,8 @@ import axios from "axios";
 
 const {appContext: {config: {globalProperties}}} = getCurrentInstance()
 const api = globalProperties.$api
-const userGoodsLevel=parseInt(localStorage.getItem("storehouse_goodsLevel"))
-const userPermission=parseInt(localStorage.getItem("storehouse_permission"))
+const userGoodsLevel = parseInt(localStorage.getItem("storehouse_goodsLevel"))
+const userPermission = parseInt(localStorage.getItem("storehouse_permission"))
 
 onMounted(() => {
     init()
@@ -23,12 +23,14 @@ function init() {
                 id: i.id,
                 name: i.name,
                 type: i.type,
-                goodsLevel:i.goodsLevel,
+                goodsLevel: i.goodsLevel,
                 imgUrl: `https://cloud.leihoorobot.com/w/${i.imgUrl}`,
                 number: parseFloat(i.number),
                 tip: i.tip,
                 zone: i.zone
             })
+            nameList.value.push({value: i.name})
+            typeList.value.push({value: i.type})
         }
         tableData.value = tmp
     }).catch(e => {
@@ -91,7 +93,6 @@ function checkImgLength(rule: any, value: any, callback: any) {
     }
 }
 
-
 async function add_form_check(formEl: FormInstance | undefined) {
     if (!formEl) return
     await formEl.validate((valid, fields) => {
@@ -105,6 +106,20 @@ async function add_form_check(formEl: FormInstance | undefined) {
 }
 
 function add() {
+    let nameFind=nameList.value.find(i=>i.value === add_form.name)
+    let typeFind=typeList.value.find(i=>i.value === add_form.type)
+    if (nameFind && typeFind){
+        ElMessageBox.alert(
+            '同名同类型的货物已经存在,请检查',
+            '警告',
+            {
+                confirmButtonText: '确认',
+                type: 'warning',
+            }
+        )
+        return
+    }
+
     axios.post(`${api}/goods_add`, {
         token: localStorage.getItem('storehouse_token'),
         name: add_form.name,
@@ -139,6 +154,29 @@ function add() {
 function add_init() {
     add_dialog.value = false
     add_form_ref.value.resetFields()
+}
+
+//自动补全
+const nameList = ref([])
+const nameSearch = (queryString: string, cb: any) => {
+    const results = queryString
+        ? nameList.value.filter(createFilter(queryString))
+        : nameList.value
+    cb(results)
+}
+const typeList = ref([])
+const typeSearch = (queryString: string, cb: any) => {
+    const results = queryString
+        ? typeList.value.filter(createFilter(queryString))
+        : typeList.value
+    cb(results)
+}
+const createFilter = (queryString: string) => {
+    return (restaurant: any) => {
+        return (
+            restaurant.value.toLowerCase().indexOf(queryString.toLowerCase()) === 0
+        )
+    }
 }
 
 function _______() {
@@ -176,7 +214,7 @@ function openBigImg(url: string) {
 function ________() {
 }
 
-let curRow = {id: -1, number: -1,goodsLevel:-1}
+let curRow = {id: -1, number: -1, goodsLevel: -1}
 const goodsOutDialog = ref(false)
 const out_form_ref = ref<FormInstance>()
 const out_form = reactive({number: null, purpose: null})
@@ -233,11 +271,13 @@ function goodsOut() {
         }
         let index = tableData.value.findIndex(i => i.id === curRow.id)
         tableData.value[index].number -= parseFloat(out_form.number)
+
+        goodsOutDialogInit()
+
         ElMessage({
             type: 'success',
             message: '出货成功',
         })
-        goodsOutDialogInit()
     }).catch(e => {
         console.error(e);
         ElMessage({
@@ -247,31 +287,63 @@ function goodsOut() {
     })
 }
 
+const goodsInDialog = ref(false)
+const in_form_ref = ref<FormInstance>()
+const in_form = reactive({number: null, purpose: null})
+const in_form_rules = reactive({
+    purpose: [
 
-function goodsIn(row: any) {
-    ElMessageBox.prompt('输入入库数量', 'Tip', {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        inputPattern: /^\d+(\.\d+)?$/,
-        inputErrorMessage: '请输入数字'
-    }).then(({value}) => {
-        axios.post(`${api}/goodsIn`, {
-            token: localStorage.getItem('storehouse_token'),
-            goodsId: row.id,
-            number: parseFloat(value),
-        }).then(res => {
-            if (res.data.status !== "200") {
-                console.error(res.data.msg)
-                throw new Error("API goodsIn back a error");
-            }
-            let index = tableData.value.findIndex(i => i.id === row.id)
-            tableData.value[index].number += parseFloat(value)
-            ElMessage({
-                type: 'success',
-                message: '入库成功',
-            })
+    ],
+    number: [
+        {required: true, message: '请填写数量', trigger: 'blur'},
+        {validator: numberCheck, trigger: 'change'}
+    ],
+})
+
+function startGoodsIn(row: any) {
+    curRow = row
+    goodsInDialog.value = true
+}
+
+function goodsInDialogInit() {
+    goodsInDialog.value = false
+    in_form_ref.value.resetFields()
+}
+async function in_form_check(formEl: FormInstance | undefined) {
+    if (!formEl) return
+    await formEl.validate((valid, fields) => {
+        if (valid) {
+            goodsIn()
+        } else {
+            console.error('error submit!', fields)
+            return
+        }
+    })
+}
+
+
+function goodsIn() {
+    axios.post(`${api}/goodsIn`, {
+        token: localStorage.getItem('storehouse_token'),
+        goodsId: curRow.id,
+        number: parseFloat(in_form.number),
+        purpose: in_form.purpose
+    }).then(res => {
+        if (res.data.status !== "200") {
+            console.error(res.data.msg)
+            throw new Error("API goodsOut back a error");
+        }
+        let index = tableData.value.findIndex(i => i.id === curRow.id)
+        tableData.value[index].number += parseFloat(in_form.number)
+
+        goodsInDialogInit()
+
+        ElMessage({
+            type: 'success',
+            message: '入库成功',
         })
-    }).catch(() => {
+    }).catch(e => {
+        console.error(e);
         ElMessage({
             type: 'error',
             message: '入库失败',
@@ -323,7 +395,7 @@ function goodsApply() {
         goodsId: curRow.id,
         number: parseFloat(apply_form.number),
         purpose: apply_form.purpose,
-        goodsLevel:curRow.goodsLevel
+        goodsLevel: curRow.goodsLevel
     }).then(res => {
         if (res.data.status !== "200") {
             console.error(res.data.msg)
@@ -352,7 +424,7 @@ function goodsApply() {
         </h1>
     </div>
     <div>
-        <el-button class="mt-4" type="success" style="width: 100%" @click="add_dialog=true">添加新货物</el-button>
+        <el-button class="mt-4" type="success" style="width: 100%" @click="add_dialog=true;">添加新货物</el-button>
         <el-table :data="filterTableData" table-layout="auto">
             <el-table-column fixed prop="id" label="id" sortable/>
             <el-table-column prop="name" label="名称" sortable/>
@@ -360,7 +432,7 @@ function goodsApply() {
             <el-table-column prop="imgUrl" label="图片" width="150" sortable>
                 <template #default="scope">
                     <img class="imgInTable" :src="scope.row.imgUrl"
-                              alt="" @click="openBigImg(scope.row.imgUrl)"/>
+                         alt="" @click="openBigImg(scope.row.imgUrl)"/>
                 </template>
             </el-table-column>
             <el-table-column prop="zone" label="区域" sortable/>
@@ -372,9 +444,11 @@ function goodsApply() {
                 </template>
                 <template #default="scope">
                     <el-button v-if="userPermission>0 && userGoodsLevel>=scope.row.goodsLevel"
-                               type="primary" size="small" @click="startGoodsOut(scope.row)">出库</el-button>
+                               type="primary" size="small" @click="startGoodsOut(scope.row)">出库
+                    </el-button>
                     <el-button v-if="userPermission>0"
-                               type="success" size="small" @click="goodsIn(scope.row)">入库</el-button>
+                               type="success" size="small" @click="startGoodsIn(scope.row)">入库
+                    </el-button>
                     <el-button type="primary" size="small" @click="startGoodsApply(scope.row)">申请取货</el-button>
                 </template>
             </el-table-column>
@@ -399,10 +473,26 @@ function goodsApply() {
                  label-width="80px"
                  status-icon>
             <el-form-item prop="name" label="名称">
-                <el-input type="text" v-model="add_form.name" placeholder="输入名称"/>
+                <el-autocomplete
+                    v-model="add_form.name"
+                    :fetch-suggestions="nameSearch"
+                    :trigger-on-focus="false"
+                    clearable
+                    class="inline-input w-50"
+                    placeholder="输入名称"
+                />
+                <!--                <el-input type="text" v-model="add_form.name" placeholder="输入名称"/>-->
             </el-form-item>
             <el-form-item prop="type" label="型号">
-                <el-input type="text" v-model="add_form.type" placeholder="输入型号"/>
+                <el-autocomplete
+                    v-model="add_form.type"
+                    :fetch-suggestions="typeSearch"
+                    :trigger-on-focus="false"
+                    clearable
+                    class="inline-input w-50"
+                    placeholder="输入型号"
+                />
+<!--                <el-input type="text" v-model="add_form.type" placeholder="输入型号"/>-->
             </el-form-item>
             <el-form-item prop="number" label="数量">
                 <el-input type="text" v-model="add_form.number" placeholder="输入数量"/>
@@ -483,6 +573,28 @@ function goodsApply() {
             <div class="dialog-footer">
                 <el-button @click="goodsOutDialogInit">取消</el-button>
                 <el-button type="primary" @click="out_form_check(out_form_ref)">确认
+                </el-button>
+            </div>
+        </template>
+    </el-dialog>
+    <el-dialog
+        v-model="goodsInDialog"
+        title="入库"
+        width="30%"
+        :before-close="goodsInDialogInit"
+    >
+        <el-form :model="in_form" :rules="in_form_rules" ref="in_form_ref">
+            <el-form-item prop="number" label="入库数量">
+                <el-input-number v-model="in_form.number"/>
+            </el-form-item>
+            <el-form-item prop="purpose" label="备注">
+                <el-input type="textarea" v-model="in_form.purpose"  show-word-limit maxlength="150"/>
+            </el-form-item>
+        </el-form>
+        <template #footer>
+            <div class="dialog-footer">
+                <el-button @click="goodsInDialogInit">取消</el-button>
+                <el-button type="primary" @click="in_form_check(in_form_ref)">确认
                 </el-button>
             </div>
         </template>
