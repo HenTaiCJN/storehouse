@@ -106,9 +106,9 @@ async function add_form_check(formEl: FormInstance | undefined) {
 }
 
 function add() {
-    let nameFind=nameList.value.find(i=>i.value === add_form.name)
-    let typeFind=typeList.value.find(i=>i.value === add_form.type)
-    if (nameFind && typeFind){
+    let nameFind = nameList.value.find(i => i.value === add_form.name)
+    let typeFind = typeList.value.find(i => i.value === add_form.type)
+    if (nameFind && typeFind) {
         ElMessageBox.alert(
             '同名同类型的货物已经存在,请检查',
             '警告',
@@ -178,6 +178,41 @@ const createFilter = (queryString: string) => {
         )
     }
 }
+
+function __________() {
+}
+
+const video_upload_dialog = ref(false)
+let mediaStream2: any
+
+function video_upload() {
+    let v = document.getElementById('videoUpload')
+    //获取摄像头并将视频流附加到video标签上
+    navigator.mediaDevices.getUserMedia({
+        audio: false,
+        video: {
+            facingMode: {exact: "environment"}
+        }
+    }).then(stream => {
+        mediaStream2 = stream;
+        v.srcObject = stream;
+    }).catch(error => {
+        console.error('Error accessing webcam:', error);
+    });
+}
+
+function video_upload_stop() {
+    if (mediaStream2) {
+        mediaStream2.getTracks().forEach(track => {
+            track.stop(); // 终止媒体流轨道
+        });
+    }
+}
+
+function video_cap() {
+
+}
+
 
 function _______() {
 }
@@ -291,9 +326,7 @@ const goodsInDialog = ref(false)
 const in_form_ref = ref<FormInstance>()
 const in_form = reactive({number: null, purpose: null})
 const in_form_rules = reactive({
-    purpose: [
-
-    ],
+    purpose: [],
     number: [
         {required: true, message: '请填写数量', trigger: 'blur'},
         {validator: numberCheck, trigger: 'change'}
@@ -309,6 +342,7 @@ function goodsInDialogInit() {
     goodsInDialog.value = false
     in_form_ref.value.resetFields()
 }
+
 async function in_form_check(formEl: FormInstance | undefined) {
     if (!formEl) return
     await formEl.validate((valid, fields) => {
@@ -492,7 +526,7 @@ function goodsApply() {
                     class="inline-input w-50"
                     placeholder="输入型号"
                 />
-<!--                <el-input type="text" v-model="add_form.type" placeholder="输入型号"/>-->
+                <!--                <el-input type="text" v-model="add_form.type" placeholder="输入型号"/>-->
             </el-form-item>
             <el-form-item prop="number" label="数量">
                 <el-input type="text" v-model="add_form.number" placeholder="输入数量"/>
@@ -526,6 +560,7 @@ function goodsApply() {
                 </el-select>
             </el-form-item>
             <el-form-item prop="img" label="图片">
+<!--                <el-button type="primary" @click="video_upload_dialog=true">拍摄上传</el-button>-->
                 <el-upload
                     v-model:file-list="add_form.img"
                     :action="upload_url"
@@ -588,7 +623,7 @@ function goodsApply() {
                 <el-input-number v-model="in_form.number"/>
             </el-form-item>
             <el-form-item prop="purpose" label="备注">
-                <el-input type="textarea" v-model="in_form.purpose"  show-word-limit maxlength="150"/>
+                <el-input type="textarea" v-model="in_form.purpose" show-word-limit maxlength="150"/>
             </el-form-item>
         </el-form>
         <template #footer>
@@ -621,6 +656,22 @@ function goodsApply() {
                 </el-button>
             </div>
         </template>
+    </el-dialog>
+    <el-dialog
+        v-model="video_upload_dialog"
+        title="拍摄"
+        width="30%"
+        @opened="video_upload"
+        @closed="video_upload_stop"
+    >
+        <div style="display: flex;justify-content: center">
+            <el-button type="primary" @click="video_cap">拍摄</el-button>
+        </div>
+
+        <div style="margin-top: 10px">
+            <video id="videoUpload" style="max-width: 100%; height: auto;" autoplay loop></video>
+        </div>
+
     </el-dialog>
 </template>
 
