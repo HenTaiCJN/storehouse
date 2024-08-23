@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import {computed, getCurrentInstance, onMounted, reactive, ref} from "vue";
 import {Plus} from '@element-plus/icons-vue'
-import {ElMessage, ElMessageBox, FormInstance, UploadProps} from "element-plus";
+import {Action, ElMessage, ElMessageBox, FormInstance, UploadProps} from "element-plus";
 import axios from "axios";
 
 const {appContext: {config: {globalProperties}}} = getCurrentInstance()
@@ -256,6 +256,7 @@ function numberCheckOut(rule: any, value: any, callback: any) {
     if (newValue > curRow.number) callback(new Error('请输入正确的数字'));
     callback();
 }
+
 function numberCheckIn(rule: any, value: any, callback: any) {
     const regex = /^\d+(\.\d+)?$/;
     if (!regex.test(value)) callback(new Error('请输入正确的数字'));
@@ -430,6 +431,33 @@ function goodsApply() {
     })
 }
 
+function goodsDelete(row: any) {
+    ElMessageBox.alert('确定删除该货物?', '警告', {
+        confirmButtonText: '确定',
+        callback: (action: Action) => {
+            axios.post(`${api}/goodsDelete`, {
+                token: localStorage.getItem('storehouse_token'),
+                goodsId: row.id,
+            }).then(res => {
+                if (res.data.status !== "200") {
+                    ElMessageBox.alert(res.data.msg, '警告', {
+                        confirmButtonText: '确定',
+                    })
+                    return
+                }
+                let index = tableData.value.findIndex(i => i.id === row.id)
+                tableData.value.splice(index, 1)
+                ElMessage({
+                    type: 'success',
+                    message: '删除成功',
+                })
+            }).catch(e => {
+                console.error(e);
+            })
+        },
+    })
+}
+
 </script>
 
 <template>
@@ -463,6 +491,9 @@ function goodsApply() {
                     </el-button>
                     <el-button v-if="userPermission>0"
                                type="success" size="small" @click="startGoodsIn(scope.row)">入库
+                    </el-button>
+                    <el-button v-if="userPermission>0"
+                               type="danger" size="small" @click="goodsDelete(scope.row)">删除
                     </el-button>
                     <el-button type="primary" size="small" @click="startGoodsApply(scope.row)">申请取货</el-button>
                 </template>
