@@ -235,7 +235,7 @@ const out_form_rules = reactive({
     ],
     number: [
         {required: true, message: '请填写数量', trigger: 'blur'},
-        {validator: numberCheck, trigger: 'change'}
+        {validator: numberCheckOut, trigger: 'change'}
     ],
 })
 
@@ -249,11 +249,16 @@ function goodsOutDialogInit() {
     out_form_ref.value.resetFields()
 }
 
-function numberCheck(rule: any, value: any, callback: any) {
+function numberCheckOut(rule: any, value: any, callback: any) {
     const regex = /^\d+(\.\d+)?$/;
     if (!regex.test(value)) callback(new Error('请输入正确的数字'));
     let newValue = parseFloat(value)
     if (newValue > curRow.number) callback(new Error('请输入正确的数字'));
+    callback();
+}
+function numberCheckIn(rule: any, value: any, callback: any) {
+    const regex = /^\d+(\.\d+)?$/;
+    if (!regex.test(value)) callback(new Error('请输入正确的数字'));
     callback();
 }
 
@@ -305,7 +310,7 @@ const in_form_rules = reactive({
     purpose: [],
     number: [
         {required: true, message: '请填写数量', trigger: 'blur'},
-        {validator: numberCheck, trigger: 'change'}
+        {validator: numberCheckIn, trigger: 'change'}
     ],
 })
 
@@ -373,7 +378,7 @@ const apply_form_rules = reactive({
     ],
     number: [
         {required: true, message: '请填写数量', trigger: 'blur'},
-        {validator: numberCheck, trigger: 'change'}
+        {validator: numberCheckOut, trigger: 'change'}
     ],
 })
 
