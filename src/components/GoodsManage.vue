@@ -11,6 +11,7 @@ const userPermission = parseInt(localStorage.getItem("storehouse_permission"))
 
 onMounted(() => {
     init()
+    isMobileDevice()
 })
 
 function init() {
@@ -32,10 +33,19 @@ function init() {
             nameList.value.push({value: i.name})
             typeList.value.push({value: i.type})
         }
+
         tableData.value = tmp
     }).catch(e => {
         console.error(e);
     })
+}
+
+const dialog_width = ref('30%')
+
+function isMobileDevice() {
+    if ((typeof window.orientation !== "undefined") || (navigator.userAgent.indexOf('IEMobile') !== -1)) {
+        dialog_width.value = '80%'
+    }
 }
 
 const add_dialog = ref(false)
@@ -177,40 +187,6 @@ const createFilter = (queryString: string) => {
             restaurant.value.toLowerCase().indexOf(queryString.toLowerCase()) === 0
         )
     }
-}
-
-function __________() {
-}
-
-const video_upload_dialog = ref(false)
-let mediaStream2: any
-
-function video_upload() {
-    let v = document.getElementById('videoUpload')
-    //获取摄像头并将视频流附加到video标签上
-    navigator.mediaDevices.getUserMedia({
-        audio: false,
-        video: {
-            facingMode: {exact: "environment"}
-        }
-    }).then(stream => {
-        mediaStream2 = stream;
-        v.srcObject = stream;
-    }).catch(error => {
-        console.error('Error accessing webcam:', error);
-    });
-}
-
-function video_upload_stop() {
-    if (mediaStream2) {
-        mediaStream2.getTracks().forEach(track => {
-            track.stop(); // 终止媒体流轨道
-        });
-    }
-}
-
-function video_cap() {
-
 }
 
 
@@ -492,14 +468,14 @@ function goodsApply() {
     <el-dialog
         v-model="bigImgDialog"
         title="图片"
-        width="30%"
+        :width="dialog_width"
     >
         <el-image style="width: 100%;" :src="bigImgUrl" fit="contain"/>
     </el-dialog>
     <el-dialog
         v-model="add_dialog"
         title="添加新货物"
-        width="30%"
+        :width="dialog_width"
         :before-close="add_init"
     >
         <el-form :model="add_form" :rules="add_form_rules" ref="add_form_ref"
@@ -560,9 +536,9 @@ function goodsApply() {
                 </el-select>
             </el-form-item>
             <el-form-item prop="img" label="图片">
-<!--                <el-button type="primary" @click="video_upload_dialog=true">拍摄上传</el-button>-->
                 <el-upload
                     v-model:file-list="add_form.img"
+                    capture="environment"
                     :action="upload_url"
                     list-type="picture-card"
                     :on-preview="handlePictureCardPreview"
@@ -592,7 +568,7 @@ function goodsApply() {
     <el-dialog
         v-model="goodsOutDialog"
         title="出库"
-        width="30%"
+        :width="dialog_width"
         :before-close="goodsOutDialogInit"
     >
         <el-form :model="out_form" :rules="out_form_rules" ref="out_form_ref">
@@ -615,7 +591,7 @@ function goodsApply() {
     <el-dialog
         v-model="goodsInDialog"
         title="入库"
-        width="30%"
+        :width="dialog_width"
         :before-close="goodsInDialogInit"
     >
         <el-form :model="in_form" :rules="in_form_rules" ref="in_form_ref">
@@ -637,7 +613,7 @@ function goodsApply() {
     <el-dialog
         v-model="goodsApplyDialog"
         title="取货申请"
-        width="30%"
+        :width="dialog_width"
         :before-close="goodsApplyDialogInit"
     >
         <el-form :model="apply_form" :rules="apply_form_rules" ref="apply_form_ref">
@@ -656,22 +632,6 @@ function goodsApply() {
                 </el-button>
             </div>
         </template>
-    </el-dialog>
-    <el-dialog
-        v-model="video_upload_dialog"
-        title="拍摄"
-        width="30%"
-        @opened="video_upload"
-        @closed="video_upload_stop"
-    >
-        <div style="display: flex;justify-content: center">
-            <el-button type="primary" @click="video_cap">拍摄</el-button>
-        </div>
-
-        <div style="margin-top: 10px">
-            <video id="videoUpload" style="max-width: 100%; height: auto;" autoplay loop></video>
-        </div>
-
     </el-dialog>
 </template>
 
