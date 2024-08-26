@@ -32,6 +32,7 @@ function init() {
             })
             nameList.value.push({value: i.name})
             typeList.value.push({value: i.type})
+            similarList.push({name: i.name, type: i.type})
         }
 
         tableData.value = tmp
@@ -116,9 +117,8 @@ async function add_form_check(formEl: FormInstance | undefined) {
 }
 
 function add() {
-    let nameFind = nameList.value.find(i => i.value === add_form.name)
-    let typeFind = typeList.value.find(i => i.value === add_form.type)
-    if (nameFind && typeFind) {
+    let similarFind = similarList.find(i => i.name === add_form.name && i.type === add_form.type)
+    if (similarFind) {
         ElMessageBox.alert(
             '同名同类型的货物已经存在,请检查',
             '警告',
@@ -154,6 +154,11 @@ function add() {
             tip: add_form.tip,
             zone: add_form.zone
         })
+
+        similarList.push({name: add_form.name, type: add_form.type})
+        nameList.value.push({value: add_form.name})
+        typeList.value.push({value: add_form.type})
+
         add_form_ref.value.resetFields()
         add_dialog.value = false
     }).catch((e) => {
@@ -188,7 +193,7 @@ const createFilter = (queryString: string) => {
         )
     }
 }
-
+let similarList = []
 
 function _______() {
 }
@@ -447,6 +452,8 @@ function goodsDelete(row: any) {
                 }
                 let index = tableData.value.findIndex(i => i.id === row.id)
                 tableData.value.splice(index, 1)
+                index = similarList.findIndex(i => i.name === row.name && i.type === row.type)
+                similarList.splice(index, 1)
                 ElMessage({
                     type: 'success',
                     message: '删除成功',
