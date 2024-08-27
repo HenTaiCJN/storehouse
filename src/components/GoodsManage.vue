@@ -440,27 +440,29 @@ function goodsDelete(row: any) {
     ElMessageBox.alert('确定删除该货物?', '警告', {
         confirmButtonText: '确定',
         callback: (action: Action) => {
-            axios.post(`${api}/goodsDelete`, {
-                token: localStorage.getItem('storehouse_token'),
-                goodsId: row.id,
-            }).then(res => {
-                if (res.data.status !== "200") {
-                    ElMessageBox.alert(res.data.msg, '警告', {
-                        confirmButtonText: '确定',
+            if(action==='confirm') {
+                axios.post(`${api}/goodsDelete`, {
+                    token: localStorage.getItem('storehouse_token'),
+                    goodsId: row.id,
+                }).then(res => {
+                    if (res.data.status !== "200") {
+                        ElMessageBox.alert(res.data.msg, '警告', {
+                            confirmButtonText: '确定',
+                        })
+                        return
+                    }
+                    let index = tableData.value.findIndex(i => i.id === row.id)
+                    tableData.value.splice(index, 1)
+                    index = similarList.findIndex(i => i.name === row.name && i.type === row.type)
+                    similarList.splice(index, 1)
+                    ElMessage({
+                        type: 'success',
+                        message: '删除成功',
                     })
-                    return
-                }
-                let index = tableData.value.findIndex(i => i.id === row.id)
-                tableData.value.splice(index, 1)
-                index = similarList.findIndex(i => i.name === row.name && i.type === row.type)
-                similarList.splice(index, 1)
-                ElMessage({
-                    type: 'success',
-                    message: '删除成功',
+                }).catch(e => {
+                    console.error(e);
                 })
-            }).catch(e => {
-                console.error(e);
-            })
+            }
         },
     })
 }
