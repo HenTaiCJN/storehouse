@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import {computed, getCurrentInstance, onMounted, reactive, ref} from "vue";
 import {Plus} from '@element-plus/icons-vue'
-import {Action, ElMessage, ElMessageBox, FormInstance, UploadProps} from "element-plus";
+import {Action, ComponentSize, ElMessage, ElMessageBox, FormInstance, UploadProps} from "element-plus";
 import axios from "axios";
 
 const {appContext: {config: {globalProperties}}} = getCurrentInstance()
@@ -52,7 +52,16 @@ function isMobileDevice() {
 const add_dialog = ref(false)
 const add_form_btn = ref(true)
 const add_form_ref = ref<FormInstance>()
-const add_form = reactive({name: "", type: "", goodsLevel: 1, img: [], zone: "", number: null, tip: ""})
+const add_form = reactive({
+    name: "",
+    type: "",
+    goodsLevel: 1,
+    img: [],
+    zone: "",
+    number: null,
+    tip: "",
+    threshold: "50"
+})
 const add_form_rules = reactive({
     name: [
         {required: true, message: '请输入标题', trigger: 'blur'},
@@ -72,6 +81,9 @@ const add_form_rules = reactive({
     ],
     number: [
         {required: true, message: '请填写数量', trigger: 'blur'},
+    ],
+    threshold: [
+        {required: true, message: '请填写阈值', trigger: 'blur'},
     ],
 })
 const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
@@ -137,6 +149,7 @@ function add() {
         goodsLevel: add_form.goodsLevel,
         imgUrl: add_form.img[0].response.msg,
         number: add_form.number,
+        threshold: add_form.threshold,
         tip: add_form.tip,
         zone: add_form.zone
     }).then((res) => {
@@ -211,14 +224,30 @@ const tableData = ref([
     },
 ])
 const search = ref('')
-const filterTableData = computed(() =>
-    tableData.value.filter((data) =>
+const currentPage = ref(1);
+const pageSize = ref(10);
+const size = ref<ComponentSize>('default')
+const filterTableData = computed(() => {
+    return tableData.value.filter((data) =>
         !search.value ||
         Object.keys(data).some((key) =>
             String(data[key]).toLowerCase().includes(search.value.toLowerCase())
         )
-    )
-)
+    );
+});
+const paginatedData = computed(() => {
+    const start = (currentPage.value - 1) * pageSize.value;
+    const end = start + pageSize.value;
+    return filterTableData.value.slice(start, end);
+});
+const filteredDataLength = computed(() => filterTableData.value.length);
+const handlePageChange = (newPage: any) => {
+    currentPage.value = newPage;
+};
+const handleSizeChange = (val: number) => {
+    pageSize.value = val
+}
+
 const bigImgUrl = ref('')
 const bigImgDialog = ref(false)
 
@@ -440,7 +469,7 @@ function goodsDelete(row: any) {
     ElMessageBox.alert('确定删除该货物?', '警告', {
         confirmButtonText: '确定',
         callback: (action: Action) => {
-            if(action==='confirm') {
+            if (action === 'confirm') {
                 axios.post(`${api}/goodsDelete`, {
                     token: localStorage.getItem('storehouse_token'),
                     goodsId: row.id,
@@ -467,6 +496,37 @@ function goodsDelete(row: any) {
     })
 }
 
+function thresholdChange(row: any) {
+    ElMessageBox.prompt('输入新的提醒阈值', 'Tip', {
+        confirmButtonText: '确认',
+        cancelButtonText: '取消',
+        inputPattern:
+            /^\d+(\.\d+)?$/,
+        inputErrorMessage: '请输入数字',
+    }).then(({value}) => {
+        axios.post(`${api}/goodsThresholdChange`, {
+            token: localStorage.getItem('storehouse_token'),
+            goodsId: row.id,
+            threshold: value,
+        }).then(res => {
+            if (res.data.status !== "200") return
+            ElMessage({
+                type: 'success',
+                message: '修改成功',
+            })
+        }).catch(e => {
+            ElMessage({
+                type: 'error',
+                message: '修改失败',
+            })
+            console.error(e);
+        })
+    }).catch((e) => {
+        console.log(e);
+    })
+}
+
+
 </script>
 
 <template>
@@ -475,16 +535,17 @@ function goodsDelete(row: any) {
             货物管理
         </h1>
     </div>
-    <div>
+    <div >
         <el-button class="mt-4" type="success" style="width: 100%" @click="add_dialog=true;">添加新货物</el-button>
-        <el-table :data="filterTableData" table-layout="auto">
+        <el-table :data="paginatedData" table-layout="auto">
             <el-table-column fixed prop="id" label="id" sortable/>
             <el-table-column prop="name" label="名称" sortable/>
             <el-table-column prop="type" label="型号" sortable/>
             <el-table-column prop="imgUrl" label="图片" width="150" sortable>
                 <template #default="scope">
                     <img class="imgInTable" :src="scope.row.imgUrl"
-                         alt="" @click="openBigImg(scope.row.imgUrl)"/>
+                         alt="" @click="openBigImg(scope.row.imgUrl)"
+                         loading="lazy"/>
                 </template>
             </el-table-column>
             <el-table-column prop="zone" label="区域" sortable/>
@@ -492,7 +553,7 @@ function goodsDelete(row: any) {
             <el-table-column prop="tip" label="备注" sortable/>
             <el-table-column fixed="right" label="操作">
                 <template #header>
-                    <el-input v-model="search" size="small" placeholder="搜索"/>
+                    <el-input class="table-search" v-model="search" size="small" placeholder="搜索"/>
                 </template>
                 <template #default="scope">
                     <el-button v-if="userPermission>0 && userGoodsLevel>=scope.row.goodsLevel"
@@ -505,10 +566,26 @@ function goodsDelete(row: any) {
                                type="danger" size="small" @click="goodsDelete(scope.row)">删除
                     </el-button>
                     <el-button type="primary" size="small" @click="startGoodsApply(scope.row)">申请取货</el-button>
+
+                    <el-button v-if="userPermission>0"
+                               type="warning" size="small" @click="thresholdChange(scope.row)">修改阈值
+                    </el-button>
                 </template>
             </el-table-column>
 
         </el-table>
+
+        <el-pagination
+            :current-page="currentPage"
+            :page-size="pageSize"
+            :page-sizes="[10, 50, 100, 150]"
+            :size="size"
+            :total="filteredDataLength"
+            layout="sizes, prev, pager, next, jumper"
+            @current-change="handlePageChange"
+            @size-change="handleSizeChange"
+            background
+        />
     </div>
     <el-dialog
         v-model="bigImgDialog"
@@ -551,6 +628,9 @@ function goodsDelete(row: any) {
             </el-form-item>
             <el-form-item prop="number" label="数量">
                 <el-input type="text" v-model="add_form.number" placeholder="输入数量"/>
+            </el-form-item>
+            <el-form-item prop="threshold" label="提醒阈值">
+                <el-input type="text" v-model="add_form.threshold" placeholder="输入提醒阈值"/>
             </el-form-item>
             <el-form-item prop="number" label="物品等级">
                 <el-select
@@ -683,5 +763,11 @@ function goodsDelete(row: any) {
 <style scoped>
 .imgInTable {
     width: 100%;
+}
+
+.el-pagination {
+    display: flex;
+    justify-content: center;
+    margin-top: 10px;
 }
 </style>

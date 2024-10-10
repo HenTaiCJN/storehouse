@@ -22,7 +22,7 @@ function openPage(data: string[]) {
         <el-aside width="auto">
             <AsideMenu @onclick="openPage"/>
         </el-aside>
-        <el-main style="display: table;"><!--tab大小超出width但不想让排版混乱可使用如下，style="display: table;"-->
+        <el-main style="display: table;padding: 0"><!--tab大小超出width但不想让排版混乱可使用如下，style="display: table;"-->
             <component :is="currPage"/>
         </el-main>
     </el-container>

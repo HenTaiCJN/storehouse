@@ -11,7 +11,7 @@ import {
 import {getCurrentInstance, onMounted, reactive, ref} from "vue";
 import {ElLoading, ElMessage, FormInstance} from "element-plus";
 import axios from "axios";
-
+import eventBus from '@/EventBus'
 
 const {appContext: {config: {globalProperties}}} = getCurrentInstance()
 const api = globalProperties.$api
@@ -109,6 +109,7 @@ function login() {
                 is_login.value = true
                 dialog_user_login.value = false
                 ElMessage({type: "success", message: "登录成功"})
+                eventBus.publish('login')
                 break
             }
         }
