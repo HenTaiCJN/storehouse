@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import {computed, getCurrentInstance, onMounted, reactive, ref} from "vue";
-import {Plus, ArrowDown} from '@element-plus/icons-vue'
+import {Plus, ArrowDown,Search} from '@element-plus/icons-vue'
 import {Action, ComponentSize, ElMessage, ElMessageBox, FormInstance, UploadProps} from "element-plus";
 import axios from "axios";
 
@@ -15,10 +15,10 @@ onMounted(() => {
 })
 
 function init() {
-    axios.post(`${api}/goods_get`, {
+    axios.post(`${api}/produce_get`, {
         token: localStorage.getItem('storehouse_token')
     }).then(res => {
-        console.log(new Blob([JSON.stringify(res.data.msg)]).size)
+        console.log(res.data.msg);
         let tmp = []
         for (const i of res.data.msg) {
             tmp.push({
@@ -466,14 +466,14 @@ function goodsApply() {
     })
 }
 
-function goodsDelete(row: any) {
-    ElMessageBox.alert('确定删除该货物?', '警告', {
+function produceDelete(row: any) {
+    ElMessageBox.alert('确定删除该模板?', '警告', {
         confirmButtonText: '确定',
         callback: (action: Action) => {
             if (action === 'confirm') {
-                axios.post(`${api}/goodsDelete`, {
+                axios.post(`${api}/produceDelete`, {
                     token: localStorage.getItem('storehouse_token'),
-                    goodsId: row.id,
+                    produceId: row.id,
                 }).then(res => {
                     if (res.data.status !== "200") {
                         ElMessageBox.alert(res.data.msg, '警告', {
@@ -552,11 +552,11 @@ function produceAdd(row: any) {
 <template>
     <div>
         <h1>
-            货物管理
+            生产管理
         </h1>
     </div>
     <div>
-        <el-button class="mt-4" type="success" style="width: 100%" @click="add_dialog=true;">添加新货物</el-button>
+        <el-button class="mt-4" type="success" style="width: 100%" @click="add_dialog=true;">添加样板</el-button>
         <el-table :data="paginatedData" table-layout="auto">
             <el-table-column fixed prop="id" label="id" sortable/>
             <el-table-column prop="name" label="名称" sortable/>
@@ -583,14 +583,14 @@ function produceAdd(row: any) {
                         <el-button v-if="userPermission>0"
                                    type="success" size="small" @click="startGoodsIn(scope.row)">入库
                         </el-button>
-<!--                        <el-button v-if="userPermission>0"
-                                   type="danger" size="small" @click="goodsDelete(scope.row)">删除
-                        </el-button>
-                        <el-button type="primary" size="small" @click="startGoodsApply(scope.row)">申请取货</el-button>
+                        <!--                        <el-button v-if="userPermission>0"
+                                                           type="danger" size="small" @click="goodsDelete(scope.row)">删除
+                                                </el-button>
+                                                <el-button type="primary" size="small" @click="startGoodsApply(scope.row)">申请取货</el-button>
 
-                        <el-button v-if="userPermission>0"
-                                   type="warning" size="small" @click="thresholdChange(scope.row)">修改阈值
-                        </el-button>-->
+                                                <el-button v-if="userPermission>0"
+                                                           type="warning" size="small" @click="thresholdChange(scope.row)">修改阈值
+                                                </el-button>-->
                         <el-dropdown>
                             <el-button type="warning" size="small">
                                 更多操作
@@ -600,7 +600,7 @@ function produceAdd(row: any) {
                             </el-button>
                             <template #dropdown>
                                 <el-dropdown-menu>
-                                    <el-dropdown-item :disabled="!(userPermission>0)" @click="goodsDelete(scope.row)">
+                                    <el-dropdown-item :disabled="!(userPermission>0)" @click="produceDelete(scope.row)">
                                         删除
                                     </el-dropdown-item>
                                     <el-dropdown-item @click="startGoodsApply(scope.row)">
@@ -610,7 +610,7 @@ function produceAdd(row: any) {
                                         修改阈值
                                     </el-dropdown-item>
                                     <el-dropdown-item :disabled="!(userPermission>0)" @click="produceAdd(scope.row)">
-                                        添加至样板
+                                        添加至生产
                                     </el-dropdown-item>
                                 </el-dropdown-menu>
                             </template>
@@ -647,95 +647,12 @@ function produceAdd(row: any) {
         :width="dialog_width"
         :before-close="add_init"
     >
-        <el-form :model="add_form" :rules="add_form_rules" ref="add_form_ref"
-                 label-position="left"
-                 label-width="80px"
-                 status-icon>
-            <el-form-item prop="name" label="名称">
-                <el-autocomplete
-                    v-model="add_form.name"
-                    :fetch-suggestions="nameSearch"
-                    :trigger-on-focus="false"
-                    clearable
-                    class="inline-input w-50"
-                    placeholder="输入名称"
-                />
-                <!--                <el-input type="text" v-model="add_form.name" placeholder="输入名称"/>-->
-            </el-form-item>
-            <el-form-item prop="type" label="型号">
-                <el-autocomplete
-                    v-model="add_form.type"
-                    :fetch-suggestions="typeSearch"
-                    :trigger-on-focus="false"
-                    clearable
-                    class="inline-input w-50"
-                    placeholder="输入型号"
-                />
-                <!--                <el-input type="text" v-model="add_form.type" placeholder="输入型号"/>-->
-            </el-form-item>
-            <el-form-item prop="number" label="数量">
-                <el-input type="text" v-model="add_form.number" placeholder="输入数量"/>
-            </el-form-item>
-            <el-form-item prop="threshold" label="提醒阈值">
-                <el-input type="text" v-model="add_form.threshold" placeholder="输入提醒阈值"/>
-            </el-form-item>
-            <el-form-item prop="number" label="物品等级">
-                <el-select
-                    v-model="add_form.goodsLevel"
-                    placeholder="请选择存放区域"
-                    style="width: 200px"
-                >
-                    <el-option
-                        v-for="item in goodsLevel"
-                        :key="item"
-                        :label="item.label"
-                        :value="item.value"
-                    />
-                </el-select>
-            </el-form-item>
-            <el-form-item prop="zone" label="区域">
-                <el-select
-                    v-model="add_form.zone"
-                    placeholder="请选择存放区域"
-                    style="width: 200px"
-                >
-                    <el-option
-                        v-for="item in alphabet"
-                        :key="item"
-                        :label="item"
-                        :value="item"
-                    />
-                </el-select>
-            </el-form-item>
-            <el-form-item prop="img" label="图片">
-                <el-upload
-                    v-model:file-list="add_form.img"
-                    capture="environment"
-                    :action="upload_url"
-                    list-type="picture-card"
-                    :on-preview="handlePictureCardPreview"
-                    :on-success="()=> add_form_btn=false"
-                    :on-error="upload_error"
-                    :on-progress="()=> {add_form_btn=true}"
-                    :data="upload_data"
-                >
-                    <el-icon>
-                        <Plus/>
-                    </el-icon>
-                </el-upload>
-            </el-form-item>
-            <el-form-item prop="tip" label="备注">
-                <el-input type="textarea" v-model="add_form.tip" placeholder="无法以个数统计的可以在此注明单位"
-                          show-word-limit maxlength="150"/>
-            </el-form-item>
-        </el-form>
-        <template #footer>
-            <div class="dialog-footer">
-                <el-button @click="add_init">取消</el-button>
-                <el-button type="primary" @click="add_form_check(add_form_ref)" :disabled="add_form_btn">确认
-                </el-button>
-            </div>
-        </template>
+        <el-input
+            v-model="input2"
+            style="width: 240px"
+            placeholder="Type something"
+            :prefix-icon="Search"
+        />
     </el-dialog>
     <el-dialog
         v-model="goodsOutDialog"

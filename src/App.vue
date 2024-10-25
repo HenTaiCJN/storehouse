@@ -5,9 +5,11 @@ import GoodsManage from "@/components/GoodsManage.vue";
 import Welcome from "@/components/Welcome.vue";
 import GoodsRecord from "@/components/GoodsRecord.vue";
 import ApplyManage  from "@/components/ApplyManage.vue";
+import ProduceManage from "@/components/ProduceManage.vue";
 
 const pages = {
-    "Welcome": Welcome, "GoodsManage": GoodsManage,"GoodsRecord":GoodsRecord,"ApplyManage":ApplyManage
+    "Welcome": Welcome, "GoodsManage": GoodsManage,"GoodsRecord":GoodsRecord,"ApplyManage":ApplyManage,
+    "ProduceManage":ProduceManage
 }
 const currPage = shallowRef(Welcome)
 

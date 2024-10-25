@@ -20,14 +20,12 @@ function init(){
     axios.post(`${api}/inventoryCheck`, {
         token: localStorage.getItem('storehouse_token')
     }).then(res => {
-        console.log(res);
         if (res.data.status == "200") {
             let tmp = []
             for (const i of res.data.msg) {
                 i.threshold = i.threshold===null ? 50 : i.threshold
                 tmp.push(i)
             }
-            console.log(tmp);
             checkList.value = tmp
         }
     }).catch(e => {

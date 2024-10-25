@@ -25,6 +25,7 @@ onMounted(() => {
 const emits = defineEmits(['onclick', 'CloseAll']);
 const index_dict = {
     "1": ["欢迎", "Welcome"], "3-1": ["货物管理", "GoodsManage"],"3-2": ["货物记录", "GoodsRecord"],"3-3": ["申请记录", "ApplyManage"],
+    "3-4":["生产管理","ProduceManage"]
 }
 
 
@@ -204,6 +205,7 @@ function login_keep() {
                 <span>工具箱</span>
             </template>
             <el-menu-item index="3-1">货物管理</el-menu-item>
+            <el-menu-item index="3-4">生产管理</el-menu-item>
             <el-menu-item index="3-2" v-if="permission>0">货物记录</el-menu-item>
             <el-menu-item index="3-3">申请记录</el-menu-item>
         </el-sub-menu>
