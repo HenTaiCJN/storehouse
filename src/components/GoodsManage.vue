@@ -18,7 +18,6 @@ function init() {
     axios.post(`${api}/goods_get`, {
         token: localStorage.getItem('storehouse_token')
     }).then(res => {
-        console.log(new Blob([JSON.stringify(res.data.msg)]).size)
         let tmp = []
         for (const i of res.data.msg) {
             tmp.push({
