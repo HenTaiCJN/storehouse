@@ -5,6 +5,8 @@ import eventBus from '@/EventBus'
 
 const {appContext: {config: {globalProperties}}} = getCurrentInstance()
 const api = globalProperties.$api
+const emits = defineEmits(['onclick', 'CloseAll']);
+
 
 const checkList = ref()
 

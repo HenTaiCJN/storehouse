@@ -8,7 +8,7 @@ const {appContext: {config: {globalProperties}}} = getCurrentInstance()
 const api = globalProperties.$api
 const userGoodsLevel = parseInt(localStorage.getItem("storehouse_goodsLevel"))
 const userPermission = parseInt(localStorage.getItem("storehouse_permission"))
-
+const emits = defineEmits(['onclick', 'CloseAll']);
 
 onMounted(() => {
     initProduce()
@@ -17,7 +17,7 @@ onMounted(() => {
 })
 
 function initProduce() {
-    axios.post(`${api}/produce_get`, {
+    axios.post(`${api}/produce_getAll`, {
         token: localStorage.getItem('storehouse_token')
     }).then(res => {
         let tmp = []
@@ -148,6 +148,7 @@ function openBigImg(url: string) {
 
 function ________() {
 }
+
 const searchGoods = ref([])
 const currentPageSearch = ref(1);
 const pageSizeSearch = ref(5);
@@ -172,7 +173,6 @@ const handleSearchPageChange = (newPage: any) => {
 const handleSearchSizeChange = (val: number) => {
     pageSizeSearch.value = val
 }
-
 
 
 function produceAdd(row: any) {
@@ -227,8 +227,9 @@ function produceDelete(row: any) {
         },
     })
 }
-function manage(row){
 
+function manage(row: any) {
+    emits("onclick",["生产详情","ProduceDetail",`produceID=${row.id}&produceName=${row.name}`]);
 }
 </script>
 
@@ -272,7 +273,6 @@ function manage(row){
             </el-table-column>
 
         </el-table>
-
         <el-pagination
             :current-page="currentPage"
             :page-size="pageSize"

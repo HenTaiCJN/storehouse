@@ -8,6 +8,7 @@ const {appContext: {config: {globalProperties}}} = getCurrentInstance()
 const api = globalProperties.$api
 const userGoodsLevel = parseInt(localStorage.getItem("storehouse_goodsLevel"))
 const userPermission = parseInt(localStorage.getItem("storehouse_permission"))
+const emits = defineEmits(['onclick', 'CloseAll']);
 
 onMounted(() => {
     init()
