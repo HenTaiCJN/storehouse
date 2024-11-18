@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import {computed, getCurrentInstance, onMounted, reactive, ref} from "vue";
-import {Plus, ArrowDown} from '@element-plus/icons-vue'
+import {ArrowDown, Plus} from '@element-plus/icons-vue'
 import {Action, ComponentSize, ElMessage, ElMessageBox, FormInstance, UploadProps} from "element-plus";
 import axios from "axios";
 
 const {appContext: {config: {globalProperties}}} = getCurrentInstance()
 const api = globalProperties.$api
+const imgPrefix = "https://cloud.leihoorobot.com/w/"
 const userGoodsLevel = parseInt(localStorage.getItem("storehouse_goodsLevel"))
 const userPermission = parseInt(localStorage.getItem("storehouse_permission"))
 const emits = defineEmits(['onclick', 'CloseAll']);
@@ -26,10 +27,11 @@ function init() {
                 name: i.name,
                 type: i.type,
                 goodsLevel: i.goodsLevel,
-                imgUrl: `https://cloud.leihoorobot.com/w/${i.imgUrl}`,
+                imgUrl: i.imgUrl,
                 number: parseFloat(i.number),
                 tip: i.tip,
-                zone: i.zone
+                zone: i.zone,
+                threshold: i.threshold,
             })
             nameList.value.push({value: i.name})
             typeList.value.push({value: i.type})
@@ -102,6 +104,7 @@ function upload_error(e: any) {
     add_form.img = null
     ElMessage({type: "error", message: "图片上传失败"})
     add_form_btn.value = false
+    info_form_btn.value = false
 }
 
 const handlePictureCardPreview: UploadProps['onPreview'] = (uploadFile) => {
@@ -546,6 +549,125 @@ function produceAdd(row: any) {
     })
 }
 
+let oldInfo
+const infoChangeDialog = ref(false)
+const info_form_btn = ref(true)
+const info_form_ref = ref<FormInstance>()
+const info_form = reactive({
+    id: null,
+    name: "",
+    type: "",
+    goodsLevel: 1,
+    img: [],
+    zone: "",
+    tip: "",
+    threshold: "50"
+})
+const info_form_rules = reactive({
+    name: [
+        {required: true, message: '请输入标题', trigger: 'blur'},
+    ],
+    type: [
+        {required: true, message: '请填写类型', trigger: 'blur'},
+    ],
+    goodsLevel: [
+        {required: true, message: '请选择物品等级', trigger: 'blur'},
+    ],
+    img: [
+        {required: true, message: '请上传文件', trigger: 'blur'},
+        {validator: checkImgLength, trigger: 'change'}
+    ],
+    zone: [
+        {required: true, message: '请选择存放区域', trigger: 'blur'},
+    ],
+    threshold: [
+        {required: true, message: '请填写阈值', trigger: 'blur'},
+    ],
+})
+
+async function info_form_check(formEl: FormInstance | undefined) {
+    if (!formEl) return
+    await formEl.validate((valid, fields) => {
+        if (valid) {
+            infoChange()
+        } else {
+            console.error('error submit!', fields)
+            return
+        }
+    })
+}
+
+function infoChangeInit(row: any) {
+    oldInfo=row
+    info_form_btn.value = false
+    console.log(row);
+    info_form.id = row.id
+    info_form.name = row.name
+    info_form.type = row.type
+    info_form.goodsLevel = row.goodsLevel
+    info_form.tip = row.tip
+    info_form.zone = row.zone
+    info_form.threshold = row.threshold === null ? 50 : row.threshold
+    info_form.img[0] = {name: "old", url: imgPrefix + row.imgUrl,oriUrl: row.imgUrl}
+
+    infoChangeDialog.value = true
+
+}
+
+function infoChange() {
+    console.log(info_form.img);
+    if(oldInfo.name !==info_form.name && oldInfo.type!==info_form.type) {
+        let similarFind = similarList.find(i => i.name === info_form.name && i.type === info_form.type)
+        if (similarFind) {
+            ElMessageBox.alert(
+                '同名同类型的货物已经存在,请检查',
+                '警告',
+                {
+                    confirmButtonText: '确认',
+                    type: 'warning',
+                }
+            )
+            return
+        }
+    }
+
+    axios.post(`${api}/goodsInfoChange`, {
+        token: localStorage.getItem('storehouse_token'),
+        goodsId: info_form.id,
+        name: info_form.name,
+        goodsType: info_form.type,
+        goodsLevel: info_form.goodsLevel,
+        imgUrl: info_form.img[0].response ? info_form.img[0].response.msg : info_form.img[0].oriUrl,
+        threshold: info_form.threshold,
+        tip: info_form.tip,
+        zone: info_form.zone
+    }).then((res) => {
+        if (res.data.status !== "200") {
+            ElMessage({type: "error", message: "登录失效,请重新登陆"})
+            return
+        }
+        const index=tableData.value.findIndex(i => i.id === info_form.id);
+        tableData.value[index]={
+            id: info_form.id,
+            name: info_form.name,
+            type: info_form.type,
+            goodsLevel: info_form.goodsLevel,
+            imgUrl: info_form.img[0].response ? info_form.img[0].response.msg : info_form.img[0].oriUrl,
+            number: tableData.value[index].number,
+            tip: info_form.tip,
+            zone: info_form.zone
+        }
+
+        similarList.push({name: info_form.name, type: info_form.type})
+        nameList.value.push({value: info_form.name})
+        typeList.value.push({value: info_form.type})
+
+        info_form_ref.value.resetFields()
+        infoChangeDialog.value = false
+    }).catch((e) => {
+        console.error(e)
+    })
+}
 
 </script>
 
@@ -563,9 +685,9 @@ function produceAdd(row: any) {
             <el-table-column prop="type" label="型号" sortable/>
             <el-table-column prop="imgUrl" label="图片" width="150" sortable>
                 <template #default="scope">
-                    <img class="imgInTable" :src="scope.row.imgUrl"
-                         alt="" @click="openBigImg(scope.row.imgUrl)"
-                         loading="lazy"/>
+                    <img class="imgInTable" :src="imgPrefix+scope.row.imgUrl"
+                         alt="" @click="openBigImg(imgPrefix+scope.row.imgUrl)"
+                         loading="lazy" :key="scope.row.imgUrl"/>
                 </template>
             </el-table-column>
             <el-table-column prop="zone" label="区域" sortable/>
@@ -583,14 +705,14 @@ function produceAdd(row: any) {
                         <el-button v-if="userPermission>0"
                                    type="success" size="small" @click="startGoodsIn(scope.row)">入库
                         </el-button>
-<!--                        <el-button v-if="userPermission>0"
-                                   type="danger" size="small" @click="goodsDelete(scope.row)">删除
-                        </el-button>
-                        <el-button type="primary" size="small" @click="startGoodsApply(scope.row)">申请取货</el-button>
+                        <!--                        <el-button v-if="userPermission>0"
+                                                           type="danger" size="small" @click="goodsDelete(scope.row)">删除
+                                                </el-button>
+                                                <el-button type="primary" size="small" @click="startGoodsApply(scope.row)">申请取货</el-button>
 
-                        <el-button v-if="userPermission>0"
-                                   type="warning" size="small" @click="thresholdChange(scope.row)">修改阈值
-                        </el-button>-->
+                                                <el-button v-if="userPermission>0"
+                                                           type="warning" size="small" @click="thresholdChange(scope.row)">修改阈值
+                                                </el-button>-->
                         <el-dropdown>
                             <el-button type="warning" size="small">
                                 更多操作
@@ -600,13 +722,18 @@ function produceAdd(row: any) {
                             </el-button>
                             <template #dropdown>
                                 <el-dropdown-menu>
+                                    <el-dropdown-item :disabled="!(userPermission>0)"
+                                                      @click="infoChangeInit(scope.row)">
+                                        修改信息
+                                    </el-dropdown-item>
                                     <el-dropdown-item :disabled="!(userPermission>0)" @click="goodsDelete(scope.row)">
                                         删除
                                     </el-dropdown-item>
                                     <el-dropdown-item @click="startGoodsApply(scope.row)">
                                         申请取货
                                     </el-dropdown-item>
-                                    <el-dropdown-item :disabled="!(userPermission>0)" @click="thresholdChange(scope.row)">
+                                    <el-dropdown-item :disabled="!(userPermission>0)"
+                                                      @click="thresholdChange(scope.row)">
                                         修改阈值
                                     </el-dropdown-item>
                                     <el-dropdown-item :disabled="!(userPermission>0)" @click="produceAdd(scope.row)">
@@ -695,7 +822,7 @@ function produceAdd(row: any) {
             </el-form-item>
             <el-form-item prop="zone" label="区域">
                 <el-select
-                    v-model="add_form.zone"
+                    v-model="info_form.zone"
                     placeholder="请选择存放区域"
                     style="width: 200px"
                 >
@@ -709,12 +836,12 @@ function produceAdd(row: any) {
             </el-form-item>
             <el-form-item prop="img" label="图片">
                 <el-upload
-                    v-model:file-list="add_form.img"
+                    v-model:file-list="info_form.img"
                     capture="environment"
                     :action="upload_url"
                     list-type="picture-card"
                     :on-preview="handlePictureCardPreview"
-                    :on-success="()=> add_form_btn=false"
+                    :on-success="()=> {add_form_btn=false;console.log(add_form.img)}"
                     :on-error="upload_error"
                     :on-progress="()=> {add_form_btn=true}"
                     :data="upload_data"
@@ -801,6 +928,83 @@ function produceAdd(row: any) {
             <div class="dialog-footer">
                 <el-button @click="goodsApplyDialogInit">取消</el-button>
                 <el-button type="primary" @click="apply_form_check(apply_form_ref)">确认
+                </el-button>
+            </div>
+        </template>
+    </el-dialog>
+    <el-dialog
+        v-model="infoChangeDialog"
+        title="更新信息"
+        :width="dialog_width"
+        :before-close="goodsApplyDialogInit"
+    >
+        <el-form :model="info_form" :rules="info_form_rules" ref="info_form_ref"
+                 label-position="left"
+                 label-width="80px"
+                 status-icon>
+            <el-form-item prop="name" label="名称">
+                <el-input type="text" v-model="info_form.name" placeholder="输入名称"/>
+            </el-form-item>
+            <el-form-item prop="type" label="型号">
+                <el-input type="text" v-model="info_form.type" placeholder="输入型号"/>
+            </el-form-item>
+            <el-form-item prop="threshold" label="提醒阈值">
+                <el-input type="text" v-model="info_form.threshold" placeholder="输入提醒阈值"/>
+            </el-form-item>
+            <el-form-item prop="number" label="物品等级">
+                <el-select
+                    v-model="info_form.goodsLevel"
+                    placeholder="请选择存放区域"
+                    style="width: 200px"
+                >
+                    <el-option
+                        v-for="item in goodsLevel"
+                        :key="item"
+                        :label="item.label"
+                        :value="item.value"
+                    />
+                </el-select>
+            </el-form-item>
+            <el-form-item prop="zone" label="区域">
+                <el-select
+                    v-model="info_form.zone"
+                    placeholder="请选择存放区域"
+                    style="width: 200px"
+                >
+                    <el-option
+                        v-for="item in alphabet"
+                        :key="item"
+                        :label="item"
+                        :value="item"
+                    />
+                </el-select>
+            </el-form-item>
+            <el-form-item prop="img" label="图片">
+                <el-upload
+                    v-model:file-list="info_form.img"
+                    capture="environment"
+                    :action="upload_url"
+                    list-type="picture-card"
+                    :on-preview="handlePictureCardPreview"
+                    :on-success="()=> info_form_btn=false"
+                    :on-error="upload_error"
+                    :on-progress="()=> {info_form_btn=true}"
+                    :data="upload_data"
+                >
+                    <el-icon>
+                        <Plus/>
+                    </el-icon>
+                </el-upload>
+            </el-form-item>
+            <el-form-item prop="tip" label="备注">
+                <el-input type="textarea" v-model="info_form.tip" placeholder="无法以个数统计的可以在此注明单位"
+                          show-word-limit maxlength="150"/>
+            </el-form-item>
+        </el-form>
+        <template #footer>
+            <div class="dialog-footer">
+                <el-button @click="goodsApplyDialogInit">取消</el-button>
+                <el-button type="primary" @click="info_form_check(info_form_ref)">确认
                 </el-button>
             </div>
         </template>
