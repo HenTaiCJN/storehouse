@@ -108,7 +108,7 @@ function upload_error(e: any) {
 }
 
 const handlePictureCardPreview: UploadProps['onPreview'] = (uploadFile) => {
-    dialogImageUrl.value = uploadFile.url!
+    dialogImageUrl.value = imgPrefix+uploadFile.url!
     dialogVisible.value = true
 }
 
@@ -126,6 +126,7 @@ async function add_form_check(formEl: FormInstance | undefined) {
         if (valid) {
             add()
         } else {
+            console.log(add_form);
             console.error('error submit!', fields)
             return
         }
@@ -584,7 +585,10 @@ const info_form_rules = reactive({
         {required: true, message: '请填写阈值', trigger: 'blur'},
     ],
 })
-
+function infoDialogInit() {
+    infoChangeDialog.value = false
+    info_form_ref.value.resetFields()
+}
 async function info_form_check(formEl: FormInstance | undefined) {
     if (!formEl) return
     await formEl.validate((valid, fields) => {
@@ -822,7 +826,7 @@ function infoChange() {
             </el-form-item>
             <el-form-item prop="zone" label="区域">
                 <el-select
-                    v-model="info_form.zone"
+                    v-model="add_form.zone"
                     placeholder="请选择存放区域"
                     style="width: 200px"
                 >
@@ -836,7 +840,7 @@ function infoChange() {
             </el-form-item>
             <el-form-item prop="img" label="图片">
                 <el-upload
-                    v-model:file-list="info_form.img"
+                    v-model:file-list="add_form.img"
                     capture="environment"
                     :action="upload_url"
                     list-type="picture-card"
@@ -936,7 +940,7 @@ function infoChange() {
         v-model="infoChangeDialog"
         title="更新信息"
         :width="dialog_width"
-        :before-close="goodsApplyDialogInit"
+        :before-close="infoDialogInit"
     >
         <el-form :model="info_form" :rules="info_form_rules" ref="info_form_ref"
                  label-position="left"
@@ -1003,7 +1007,7 @@ function infoChange() {
         </el-form>
         <template #footer>
             <div class="dialog-footer">
-                <el-button @click="goodsApplyDialogInit">取消</el-button>
+                <el-button @click="infoDialogInit">取消</el-button>
                 <el-button type="primary" @click="info_form_check(info_form_ref)">确认
                 </el-button>
             </div>
