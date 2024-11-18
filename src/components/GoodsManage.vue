@@ -32,6 +32,7 @@ function init() {
                 tip: i.tip,
                 zone: i.zone,
                 threshold: i.threshold,
+                buyUrl: i.buyUrl
             })
             nameList.value.push({value: i.name})
             typeList.value.push({value: i.type})
@@ -108,7 +109,7 @@ function upload_error(e: any) {
 }
 
 const handlePictureCardPreview: UploadProps['onPreview'] = (uploadFile) => {
-    dialogImageUrl.value = imgPrefix+uploadFile.url!
+    dialogImageUrl.value = imgPrefix + uploadFile.url!
     dialogVisible.value = true
 }
 
@@ -225,7 +226,8 @@ const tableData = ref([
         imgUrl: "https://cloud.leihoorobot.com/w/assets/img/lehangkeji/108e69ceb983b6b623c5fb44c1c1cda81696491802.307376.png",
         zone: "A",
         number: 200,
-        tip: ''
+        tip: '',
+        buyUrl:''
     },
 ])
 const search = ref('')
@@ -550,6 +552,37 @@ function produceAdd(row: any) {
     })
 }
 
+function handleBuyUrl(row: any) {
+    ElMessageBox.prompt('购买地址', 'Tip', {
+        confirmButtonText: '保存',
+        cancelButtonText: '取消',
+        inputType: "textarea",
+        inputValue:row.buyUrl
+    }).then(({value}) => {
+        axios.post(`${api}/goodsBuyUrlChange`, {
+            token: localStorage.getItem('storehouse_token'),
+            goodsId: row.id,
+            buyUrl: value,
+        }).then(res => {
+            if (res.data.status !== "200") return
+            const index=tableData.value.findIndex(i => i.id === row.id)
+            tableData.value[index].buyUrl = value
+            ElMessage({
+                type: 'success',
+                message: '保存成功',
+            })
+        }).catch(e => {
+            ElMessage({
+                type: 'error',
+                message: '修改失败',
+            })
+            console.error(e);
+        })
+    }).catch((e) => {
+        console.log(e);
+    })
+}
+
 let oldInfo
 const infoChangeDialog = ref(false)
 const info_form_btn = ref(true)
@@ -585,10 +618,12 @@ const info_form_rules = reactive({
         {required: true, message: '请填写阈值', trigger: 'blur'},
     ],
 })
+
 function infoDialogInit() {
     infoChangeDialog.value = false
     info_form_ref.value.resetFields()
 }
+
 async function info_form_check(formEl: FormInstance | undefined) {
     if (!formEl) return
     await formEl.validate((valid, fields) => {
@@ -602,7 +637,7 @@ async function info_form_check(formEl: FormInstance | undefined) {
 }
 
 function infoChangeInit(row: any) {
-    oldInfo=row
+    oldInfo = row
     info_form_btn.value = false
     console.log(row);
     info_form.id = row.id
@@ -612,7 +647,7 @@ function infoChangeInit(row: any) {
     info_form.tip = row.tip
     info_form.zone = row.zone
     info_form.threshold = row.threshold === null ? 50 : row.threshold
-    info_form.img[0] = {name: "old", url: imgPrefix + row.imgUrl,oriUrl: row.imgUrl}
+    info_form.img[0] = {name: "old", url: imgPrefix + row.imgUrl, oriUrl: row.imgUrl}
 
     infoChangeDialog.value = true
 
@@ -620,7 +655,7 @@ function infoChangeInit(row: any) {
 
 function infoChange() {
     console.log(info_form.img);
-    if(oldInfo.name !==info_form.name && oldInfo.type!==info_form.type) {
+    if (oldInfo.name !== info_form.name && oldInfo.type !== info_form.type) {
         let similarFind = similarList.find(i => i.name === info_form.name && i.type === info_form.type)
         if (similarFind) {
             ElMessageBox.alert(
@@ -650,8 +685,8 @@ function infoChange() {
             ElMessage({type: "error", message: "登录失效,请重新登陆"})
             return
         }
-        const index=tableData.value.findIndex(i => i.id === info_form.id);
-        tableData.value[index]={
+        const index = tableData.value.findIndex(i => i.id === info_form.id);
+        tableData.value[index] = {
             id: info_form.id,
             name: info_form.name,
             type: info_form.type,
@@ -730,19 +765,23 @@ function infoChange() {
                                                       @click="infoChangeInit(scope.row)">
                                         修改信息
                                     </el-dropdown-item>
-                                    <el-dropdown-item :disabled="!(userPermission>0)" @click="goodsDelete(scope.row)">
-                                        删除
+                                    <el-dropdown-item :disabled="!(userPermission>0)" @click="produceAdd(scope.row)">
+                                        添加至样板
+                                    </el-dropdown-item>
+                                    <el-dropdown-item :disabled="!(userPermission>0)" @click="handleBuyUrl(scope.row)">
+                                        购买地址
                                     </el-dropdown-item>
                                     <el-dropdown-item @click="startGoodsApply(scope.row)">
                                         申请取货
                                     </el-dropdown-item>
-                                    <el-dropdown-item :disabled="!(userPermission>0)"
-                                                      @click="thresholdChange(scope.row)">
-                                        修改阈值
+                                    <!--                                    <el-dropdown-item :disabled="!(userPermission>0)"
+                                                                                          @click="thresholdChange(scope.row)">
+                                                                            修改阈值
+                                                                        </el-dropdown-item>-->
+                                    <el-dropdown-item :disabled="!(userPermission>0)" @click="goodsDelete(scope.row)">
+                                        删除
                                     </el-dropdown-item>
-                                    <el-dropdown-item :disabled="!(userPermission>0)" @click="produceAdd(scope.row)">
-                                        添加至样板
-                                    </el-dropdown-item>
+
                                 </el-dropdown-menu>
                             </template>
                         </el-dropdown>
